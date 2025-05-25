@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生管發包紀錄查詢系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 全局樣式 */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FFF8E1; /* 淺黃色背景 (稍微深一點) */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* 從頂部開始對齊 */
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased; /* 改善字體渲染 */
+            -moz-osx-font-smoothing: grayscale; /* 改善字體渲染 */
+        }
+
+        /* 容器樣式 */
+        .container {
+            background-color: #ffffff; /* 白色容器背景 */
+            padding: 32px;
+            border-radius: 16px; /* 圓角更大，更柔和 */
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1); /* 更明顯的柔和陰影 */
+            width: 100%;
+            max-width: 960px; /* 最大寬度 */
+            box-sizing: border-box;
+            animation: fadeIn 0.8s ease-out; /* 容器淡入動畫 */
+        }
+
+        /* 表格通用樣式 */
+        table {
+            width: 100%;
+            border-collapse: separate; /* 允許圓角邊框 */
+            border-spacing: 0; /* 移除單元格間距 */
+            margin-top: 20px;
+            overflow: hidden; /* 隱藏超出圓角的部分 */
+            border-radius: 10px; /* 表格圓角 */
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); /* 表格輕微陰影 */
+        }
+
+        th, td {
+            padding: 14px 18px; /* 增加內邊距 */
+            text-align: left;
+            border-bottom: 1px solid #FBC02D; /* 淺黃色底部邊框 (稍微深一點) */
+        }
+
+        th {
+            background-color: #F9A825; /* 亮黃色表頭背景 (稍微深一點) */
+            color: #333333; /* 深灰色文字 */
+            font-weight: 700; /* 加粗 */
+            text-transform: uppercase; /* 大寫 */
+            letter-spacing: 0.08em; /* 字元間距 */
+            position: sticky; /* 表頭固定 */
+            top: 0;
+            z-index: 1; /* 確保表頭在上方 */
+        }
+
+        tr:last-child td {
+            border-bottom: none; /* 最後一行沒有底部邊框 */
+        }
+
+        tr:nth-child(even) {
+            background-color: #FFFACD; /* 斑馬紋效果，非常淺的黃色 (稍微深一點) */
+        }
+
+        tr:hover {
+            background-color: #FFF0B3; /* 行懸停效果 (稍微深一點) */
+            transition: background-color 0.3s ease;
+        }
+
+        /* 隱藏的輸入組 (不再需要) */
+        .input-group {
+            display: none;
+        }
+
+        /* 輸入框和下拉選單樣式 */
+        input[type="text"], select {
+            flex-grow: 1;
+            padding: 12px;
+            border: 1px solid #FBC02D; /* 淺黃色邊框 (稍微深一點) */
+            border-radius: 8px; /* 圓角 */
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease; /* 平滑過渡效果 */
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06); /* 內陰影 */
+        }
+
+        input[type="text"]:focus, select:focus {
+            border-color: #F57F17; /* 聚焦時邊框變深黃 */
+            box-shadow: 0 0 0 3px rgba(245, 127, 23, 0.3); /* 聚焦時發光效果 */
+        }
+
+        /* 按鈕樣式 */
+        button {
+            padding: 12px 28px; /* 增加內邊距 */
+            background-color: #F9A825; /* 亮黃色按鈕 (稍微深一點) */
+            color: #333333; /* 深灰色文字 */
+            border: none;
+            border-radius: 8px; /* 圓角 */
+            cursor: pointer;
+            font-size: 1.05rem; /* 字體稍大 */
+            font-weight: 700; /* 更粗 */
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease; /* 平滑過渡效果 */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 柔和陰影 */
+            letter-spacing: 0.02em; /* 字元間距 */
+        }
+
+        button:hover {
+            background-color: #F57F17; /* 懸停時顏色變深 */
+            transform: translateY(-2px); /* 輕微上移效果 */
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15); /* 懸停時陰影更明顯 */
+        }
+
+        button:active {
+            transform: translateY(0); /* 點擊時恢復位置 */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 點擊時陰影變小 */
+        }
+
+        /* 清除按鈕的特殊樣式 */
+        button#clearFilterButton {
+            background-color: #D1D5DB; /* 淺灰色 */
+            color: #4B5563; /* 深灰色文字 */
+        }
+
+        button#clearFilterButton:hover {
+            background-color: #9CA3AF; /* 懸停時顏色變深 */
+            color: #1F2937;
+        }
+
+        /* 訊息框樣式 */
+        .message-box {
+            background-color: #FFFACD; /* 淺黃色背景 (稍微深一點) */
+            color: #B85000; /* 橙色文字 (稍微深一點) */
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none; /* 預設隱藏 */
+            font-weight: 500;
+            animation: slideInFromTop 0.4s ease-out; /* 訊息框滑入動畫 */
+        }
+
+        .message-box.error {
+            background-color: #FEE2E2; /* 淺紅色背景 */
+            color: #EF4444; /* 紅色文字 */
+        }
+
+        .message-box.info {
+            background-color: #D1FAE5; /* 淺綠色背景 */
+            color: #059669; /* 深綠色文字 */
+        }
+
+        /* 篩選區塊樣式 */
+        .filter-section {
+            padding-top: 0px;
+            margin-top: 0px;
+        }
+
+        .filter-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 0px; /* 移除底部間距，由 grid-gap 控制 */
+        }
+
+        /* 響應式網格佈局 */
+        .filter-fields-grid {
+            display: grid;
+            grid-template-columns: 1fr; /* 預設單列 */
+            gap: 24px; /* 網格間距 */
+            margin-bottom: 20px;
+        }
+        @media (min-width: 640px) {
+            .filter-fields-grid {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* 小螢幕2列，大螢幕3列 */
+            }
+        }
+        @media (min-width: 1024px) {
+            .filter-fields-grid {
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* 大螢幕更多列 */
+            }
+        }
+
+        /* CSS3 動畫 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideInFromTop {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .footer-text {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #6B7280; /* 灰色文字 */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">生管發包紀錄查詢系統</h1>
+
+        <div id="messageBox" class="message-box"></div>
+
+        <div id="filterFieldsContainer" class="filter-fields-grid">
+            </div>
+
+        <div class="flex flex-col sm:flex-row gap-4 mt-6 justify-center">
+            <button id="filterButton">查詢資料</button>
+            <button id="clearFilterButton" class="bg-gray-500 hover:bg-gray-600">清除查詢</button>
+        </div>
+
+        <div id="filteredDataTableContainer" class="overflow-x-auto mt-4">
+            </div>
+
+        <div class="footer-text">
+            笙祐科技開發公司 v1.0.0版本
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 硬編碼 Google 試算表 CSV 發佈 URL
+            const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSEJmhsY1H47kZu97xx8R4Y09MtVzrKjvrQW2u4PS6uQ8BABPDcjIrSycRXbw6QDNL66ESPTpo7wL7j/pub?gid=0&single=true&output=csv";
+
+            const messageBox = document.getElementById('messageBox');
+            const filterButton = document.getElementById('filterButton');
+            const clearFilterButton = document.getElementById('clearFilterButton');
+            const filteredDataTableContainer = document.getElementById('filteredDataTableContainer');
+            const filterFieldsContainer = document.getElementById('filterFieldsContainer');
+
+            let sheetData = []; // 用於儲存解析後的試算表資料 (物件陣列)
+            let headers = []; // 用於儲存表頭 (包含所有原始欄位名稱)
+            const filterControls = []; // 用於儲存所有動態生成的查詢控制項的引用
+
+            // 定義要排除的欄位名稱，這些欄位將不會生成查詢宮格
+            const EXCLUDED_HEADERS = [
+                '發圖', '預完成日', '生管預完成日', '製作中', '交期',
+                '下一關', '實完成日', '數量', '現有庫存', '噴漆前物件'
+            ];
+
+            // 顯示訊息
+            function showMessage(message, type = 'error') {
+                console.log(`Message (${type}): ${message}`);
+                messageBox.textContent = message;
+                messageBox.className = 'message-box ' + type;
+                messageBox.style.display = 'block';
+            }
+
+            // 隱藏訊息
+            function hideMessage() {
+                messageBox.style.display = 'none';
+            }
+
+            // 載入試算表資料並動態生成查詢欄位
+            async function loadSheetData() {
+                const url = GOOGLE_SHEET_CSV_URL;
+                hideMessage();
+                filteredDataTableContainer.innerHTML = '';
+                filterFieldsContainer.innerHTML = '';
+
+                console.log('開始載入試算表資料...');
+                try {
+                    showMessage('試算表資料載入中...', 'info');
+
+                    const response = await fetch(url);
+                    console.log('Fetch response:', response);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP 錯誤! 狀態碼: ${response.status}`);
+                    }
+
+                    const csvText = await response.text();
+                    console.log('CSV 原始文字 (前200字元):', csvText.substring(0, 200) + '...');
+                    const rows = csvText.split('\n').map(row => row.trim()).filter(row => row.length > 0);
+
+                    if (rows.length === 0) {
+                        showMessage('試算表中沒有資料。', 'error');
+                        console.warn('試算表為空或無法解析。');
+                        return;
+                    }
+
+                    // 解析表頭 (包含所有原始欄位)
+                    headers = rows[0].split(',').map(header => header.trim());
+                    console.log('解析後的表頭 (headers):', headers);
+
+                    // 解析資料並儲存為物件陣列
+                    sheetData = [];
+                    for (let i = 1; i < rows.length; i++) {
+                        // 更穩健的 CSV 行解析，處理引號內的逗號
+                        const dataValues = parseCsvRow(rows[i]);
+                        const rowObject = {};
+                        headers.forEach((header, index) => {
+                            rowObject[header] = dataValues[index] ? dataValues[index].trim() : ''; // 處理可能缺少的資料並去除空白
+                        });
+                        sheetData.push(rowObject);
+                    }
+                    console.log('解析後的資料 (sheetData):', sheetData);
+
+                    // 動態生成每個表頭的查詢欄位，排除特定欄位
+                    filterControls.length = 0; // 清空舊的控制項引用
+                    headers.forEach(header => {
+                        // 如果欄位名稱在排除列表中，則跳過生成查詢宮格
+                        if (EXCLUDED_HEADERS.includes(header)) {
+                            return;
+                        }
+
+                        const sectionDiv = document.createElement('div');
+                        sectionDiv.classList.add('filter-section');
+                        sectionDiv.innerHTML = `
+                            <h2 class="text-xl font-bold text-gray-700 mb-2">${header}</h2>
+                            <div class="filter-controls">
+                                <input type="text" id="input-${header}" placeholder="手動輸入${header}" class="flex-grow">
+                                <select id="select-${header}" class="flex-grow">
+                                    <option value="">或從下拉選單選擇${header}</option>
+                                </select>
+                            </div>
+                        `;
+                        filterFieldsContainer.appendChild(sectionDiv);
+
+                        const inputElement = document.getElementById(`input-${header}`);
+                        const selectElement = document.getElementById(`select-${header}`);
+
+                        filterControls.push({
+                            header: header,
+                            input: inputElement,
+                            select: selectElement
+                        });
+
+                        // 初始填充下拉選單（所有選項）
+                        populateDropdown(selectElement, sheetData, header);
+
+                        // 添加事件監聽器以處理輸入框和下拉選單的互動
+                        inputElement.addEventListener('input', () => {
+                            selectElement.value = ''; // 如果手動輸入，清空下拉選單
+                            updateAllDropdowns(); // 觸發所有下拉選單更新
+                        });
+                        selectElement.addEventListener('change', () => {
+                            inputElement.value = ''; // 如果下拉選單有選擇，清空手動輸入
+                            updateAllDropdowns(); // 觸發所有下拉選單更新
+                        });
+                    });
+
+                    showMessage('試算表資料載入成功，請輸入或選擇條件進行查詢。', 'info');
+                    
+                } catch (error) {
+                    console.error('載入試算表資料時發生錯誤:', error);
+                    showMessage(`載入資料失敗: ${error.message}`, 'error');
+                }
+            }
+
+            // 更穩健的 CSV 行解析函數，處理引號內的逗號
+            function parseCsvRow(row) {
+                const result = [];
+                let inQuote = false;
+                let currentField = '';
+                for (let i = 0; i < row.length; i++) {
+                    const char = row[i];
+                    if (char === '"') {
+                        inQuote = !inQuote;
+                        // 處理雙引號內的雙引號 (escaped quote)
+                        if (inQuote && row[i + 1] === '"') {
+                            currentField += '"';
+                            i++; // 跳過下一個引號
+                        }
+                    } else if (char === ',' && !inQuote) {
+                        result.push(currentField);
+                        currentField = '';
+                    } else {
+                        currentField += char;
+                    }
+                }
+                result.push(currentField); // 推入最後一個欄位
+                return result;
+            }
+
+            // 填充下拉選單的通用函數
+            function populateDropdown(selectElement, sourceData, targetHeaderName) {
+                const currentValue = selectElement.value; // 記住當前選擇的值
+                selectElement.innerHTML = `<option value="">或從下拉選單選擇${targetHeaderName}</option>`;
+
+                const uniqueValues = new Set();
+                sourceData.forEach(row => {
+                    if (row[targetHeaderName]) {
+                        uniqueValues.add(row[targetHeaderName]);
+                    }
+                });
+
+                const sortedValues = Array.from(uniqueValues).sort();
+                sortedValues.forEach(value => {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = value;
+                    selectElement.appendChild(option);
+                });
+
+                // 嘗試恢復之前選擇的值
+                if (currentValue && sortedValues.includes(currentValue)) {
+                    selectElement.value = currentValue;
+                }
+            }
+
+            // 動態更新所有下拉選單的選項
+            function updateAllDropdowns() {
+                // 1. 收集所有當前生效的篩選條件（來自所有輸入框和下拉選單）
+                const currentActiveFilters = {};
+                filterControls.forEach(control => {
+                    const inputValue = control.input.value.trim();
+                    const selectValue = control.select.value.trim();
+                    const value = inputValue || selectValue;
+                    if (value) {
+                        currentActiveFilters[control.header] = value;
+                    }
+                });
+
+                // 2. 針對每個查詢欄位，重新填充其下拉選單
+                filterControls.forEach(controlToUpdate => {
+                    let dataForDropdown = sheetData;
+
+                    // 應用除當前欄位外的所有篩選條件
+                    for (const headerKey in currentActiveFilters) {
+                        if (headerKey !== controlToUpdate.header) {
+                            const filterValue = currentActiveFilters[headerKey];
+                            const targetHeader = headers.find(h => h === headerKey); // 確保匹配原始表頭名稱
+                            if (targetHeader) {
+                                dataForDropdown = dataForDropdown.filter(row => (row[targetHeader] || '').trim() === filterValue.trim());
+                            }
+                        }
+                    }
+                    // 使用篩選後的資料來填充當前下拉選單
+                    populateDropdown(controlToUpdate.select, dataForDropdown, controlToUpdate.header);
+                });
+            }
+
+            // 篩選資料並顯示結果
+            function filterData() {
+                filteredDataTableContainer.innerHTML = ''; // 清空舊的篩選結果
+                hideMessage();
+
+                const activeFilters = [];
+                filterControls.forEach(control => {
+                    const inputValue = control.input.value.trim();
+                    const selectValue = control.select.value.trim();
+                    const value = inputValue || selectValue; // 優先使用手動輸入的值
+
+                    if (value) {
+                        activeFilters.push({
+                            header: control.header,
+                            value: value
+                        });
+                    }
+                });
+
+                console.log('主動篩選條件 (activeFilters):', activeFilters);
+
+                if (activeFilters.length === 0) {
+                    showMessage('請輸入或選擇至少一個查詢條件。', 'error');
+                    return;
+                }
+
+                // 尋找符合所有條件的所有資料行
+                const foundRows = sheetData.filter(row => {
+                    return activeFilters.every(filter => {
+                        // 確保比較時也去除空白
+                        return (row[filter.header] || '').trim() === filter.value.trim();
+                    });
+                });
+
+                console.log('找到的符合條件的資料行 (foundRows):', foundRows);
+
+                if (foundRows.length > 0) {
+                    // 這裡關鍵是傳遞 `headers` (包含所有原始欄位) 給顯示函數
+                    displayMultipleRows(foundRows, headers);
+                    showMessage(`找到 ${foundRows.length} 筆資料。`, 'info'); // 顯示找到的筆數
+                } else {
+                    const criteriaText = activeFilters.map(f => `${f.header}: "${f.value}"`).join(', ');
+                    showMessage(`找不到符合條件 (${criteriaText}) 的資料。`, 'error');
+                }
+            }
+
+            // 顯示多筆篩選結果的表格 (橫向呈現)
+            function displayMultipleRows(data, allHeaders) {
+                const table = document.createElement('table');
+                table.classList.add('min-w-full', 'bg-white', 'shadow-md', 'rounded-lg', 'overflow-hidden');
+
+                // 創建表頭
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                // 使用 allHeaders 來確保所有原始欄位都顯示在表格表頭
+                allHeaders.forEach(header => {
+                    const th = document.createElement('th');
+                    th.textContent = header;
+                    headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+
+                // 創建表格內容
+                const tbody = document.createElement('tbody');
+                data.forEach(rowData => {
+                    const tr = document.createElement('tr');
+                    // 使用 allHeaders 來確保所有原始欄位都顯示在表格內容
+                    allHeaders.forEach(header => {
+                        const td = document.createElement('td');
+                        td.textContent = rowData[header]; // 直接顯示數據，如果為空則顯示空字串
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                });
+                table.appendChild(tbody);
+                filteredDataTableContainer.appendChild(table);
+            }
+
+            // 清除所有篩選結果和輸入
+            function clearFilter() {
+                filterControls.forEach(control => {
+                    control.input.value = '';
+                    control.select.value = '';
+                });
+                filteredDataTableContainer.innerHTML = '';
+                hideMessage();
+                // 清除後重新填充所有下拉選單選項（基於原始完整資料）
+                updateAllDropdowns(); // 調用此函數會讓所有下拉選單顯示所有選項
+            }
+
+            // 事件監聽器
+            filterButton.addEventListener('click', filterData);
+            clearFilterButton.addEventListener('click', clearFilter);
+
+            // 頁面載入時自動載入試算表資料
+            loadSheetData();
+        });
+    </script>
+</body>
+</html>
