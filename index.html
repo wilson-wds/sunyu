@@ -336,7 +336,7 @@
             </div>
 
         <div class="footer-text">
-            笙祐科技開發公司 v1.0.0版本
+            笙祐科技開發公司 v1.0.1版本
         </div>
     </div>
 
@@ -354,15 +354,15 @@
             const filterButton = document.getElementById('filterButton');
             const clearFilterButton = document.getElementById('clearFilterButton');
             const exportCsvButton = document.getElementById('exportCsvButton');
-            const printButton = document.getElementById('printButton'); // 獲取列印按鈕
+            const printButton = document.getElementById('printButton');
             const filteredDataTableContainer = document.getElementById('filteredDataTableContainer');
             const filterFieldsContainer = document.getElementById('filterFieldsContainer');
             const loadingOverlay = document.getElementById('loadingOverlay');
 
-            let sheetData = []; // 用於儲存解析後的試算表資料 (物件陣列)
-            let headers = []; // 用於儲存表頭 (包含所有原始欄位名稱)
-            const filterControls = []; // 用於儲存所有動態生成的查詢控制項的引用
-            let lastFoundRows = []; // 用於儲存上次查詢到的資料，以便導出和列印
+            let sheetData = [];
+            let headers = [];
+            const filterControls = [];
+            let lastFoundRows = [];
 
             // 定義要排除的欄位名稱，這些欄位將不會生成查詢宮格
             const EXCLUDED_HEADERS = [
@@ -399,7 +399,7 @@
                 hideMessage();
                 filteredDataTableContainer.innerHTML = '';
                 filterFieldsContainer.innerHTML = '';
-                showLoading(); // 顯示讀取動畫
+                showLoading();
 
                 console.log('開始載入試算表資料...');
                 try {
@@ -433,16 +433,15 @@
                         const dataValues = parseCsvRow(rows[i]);
                         const rowObject = {};
                         headers.forEach((header, index) => {
-                            rowObject[header] = dataValues[index] ? dataValues[index].trim() : ''; // 處理可能缺少的資料並去除空白
+                            rowObject[header] = dataValues[index] ? dataValues[index].trim() : '';
                         });
                         sheetData.push(rowObject);
                     }
                     console.log('解析後的資料 (sheetData):', sheetData);
 
                     // 動態生成每個表頭的查詢欄位，排除特定欄位
-                    filterControls.length = 0; // 清空舊的控制項引用
+                    filterControls.length = 0;
                     headers.forEach(header => {
-                        // 如果欄位名稱在排除列表中，則跳過生成查詢宮格
                         if (EXCLUDED_HEADERS.includes(header)) {
                             return;
                         }
@@ -469,26 +468,24 @@
                             select: selectElement
                         });
 
-                        // 初始填充下拉選單（所有選項）
                         populateDropdown(selectElement, sheetData, header);
 
-                        // 添加事件監聽器以處理輸入框和下拉選單的互動
                         inputElement.addEventListener('input', () => {
-                            selectElement.value = ''; // 如果手動輸入，清空下拉選單
-                            updateAllDropdowns(); // 觸發所有下拉選單更新
+                            selectElement.value = '';
+                            updateAllDropdowns();
                         });
                         inputElement.addEventListener('keydown', (event) => {
                             if (event.key === 'Enter') {
-                                filterData(); // 按下 Enter 鍵時查詢資料
+                                filterData();
                             }
                         });
                         selectElement.addEventListener('change', () => {
-                            inputElement.value = ''; // 如果下拉選單有選擇，清空手動輸入
-                            updateAllDropdowns(); // 觸發所有下拉選單更新
+                            inputElement.value = '';
+                            updateAllDropdowns();
                         });
                         selectElement.addEventListener('keydown', (event) => {
                             if (event.key === 'Enter') {
-                                filterData(); // 按下 Enter 鍵時查詢資料
+                                filterData();
                             }
                         });
                     });
@@ -499,11 +496,10 @@
                     console.error('載入試算表資料時發生錯誤:', error);
                     showMessage(`載入資料失敗: ${error.message}`, 'error');
                 } finally {
-                    hideLoading(); // 無論成功或失敗，都隱藏讀取動畫
+                    hideLoading();
                 }
             }
 
-            // 更穩健的 CSV 行解析函數，處理引號內的逗號
             function parseCsvRow(row) {
                 const result = [];
                 let inQuote = false;
@@ -512,10 +508,9 @@
                     const char = row[i];
                     if (char === '"') {
                         inQuote = !inQuote;
-                        // 處理雙引號內的雙引號 (escaped quote)
                         if (inQuote && row[i + 1] === '"') {
                             currentField += '"';
-                            i++; // 跳過下一個引號
+                            i++;
                         }
                     } else if (char === ',' && !inQuote) {
                         result.push(currentField);
@@ -524,13 +519,12 @@
                         currentField += char;
                     }
                 }
-                result.push(currentField); // 推入最後一個欄位
+                result.push(currentField);
                 return result;
             }
 
-            // 填充下拉選單的通用函數
             function populateDropdown(selectElement, sourceData, targetHeaderName) {
-                const currentValue = selectElement.value; // 記住當前選擇的值
+                const currentValue = selectElement.value;
                 selectElement.innerHTML = `<option value="">或從下拉選單選擇${targetHeaderName}</option>`;
 
                 const uniqueValues = new Set();
@@ -548,15 +542,12 @@
                     selectElement.appendChild(option);
                 });
 
-                // 嘗試恢復之前選擇的值
                 if (currentValue && sortedValues.includes(currentValue)) {
                     selectElement.value = currentValue;
                 }
             }
 
-            // 動態更新所有下拉選單的選項
             function updateAllDropdowns() {
-                // 1. 收集所有當前生效的篩選條件（來自所有輸入框和下拉選單）
                 const currentActiveFilters = {};
                 filterControls.forEach(control => {
                     const inputValue = control.input.value.trim();
@@ -567,36 +558,32 @@
                     }
                 });
 
-                // 2. 針對每個查詢欄位，重新填充其下拉選單
                 filterControls.forEach(controlToUpdate => {
                     let dataForDropdown = sheetData;
 
-                    // 應用除當前欄位外的所有篩選條件
                     for (const headerKey in currentActiveFilters) {
                         if (headerKey !== controlToUpdate.header) {
                             const filterValue = currentActiveFilters[headerKey];
-                            const targetHeader = headers.find(h => h === headerKey); // 確保匹配原始表頭名稱
+                            const targetHeader = headers.find(h => h === headerKey);
                             if (targetHeader) {
                                 dataForDropdown = dataForDropdown.filter(row => (row[targetHeader] || '').trim() === filterValue.trim());
                             }
                         }
                     }
-                    // 使用篩選後的資料來填充當前下拉選單
                     populateDropdown(controlToUpdate.select, dataForDropdown, controlToUpdate.header);
                 });
             }
 
-            // 篩選資料並顯示結果
             function filterData() {
-                filteredDataTableContainer.innerHTML = ''; // 清空舊的篩選結果
+                filteredDataTableContainer.innerHTML = '';
                 hideMessage();
-                showLoading(); // 顯示讀取動畫
+                showLoading();
 
                 const activeFilters = [];
                 filterControls.forEach(control => {
                     const inputValue = control.input.value.trim();
                     const selectValue = control.select.value.trim();
-                    const value = inputValue || selectValue; // 優先使用手動輸入的值
+                    const value = inputValue || selectValue;
 
                     if (value) {
                         activeFilters.push({
@@ -610,14 +597,12 @@
 
                 if (activeFilters.length === 0) {
                     showMessage('請輸入或選擇至少一個查詢條件。', 'error');
-                    hideLoading(); // 隱藏讀取動畫
+                    hideLoading();
                     return;
                 }
 
-                // 尋找符合所有條件的所有資料行
-                lastFoundRows = sheetData.filter(row => { // 將結果儲存到 lastFoundRows
+                lastFoundRows = sheetData.filter(row => {
                     return activeFilters.every(filter => {
-                        // 確保比較時也去除空白
                         return (row[filter.header] || '').trim() === filter.value.trim();
                     });
                 });
@@ -625,25 +610,21 @@
                 console.log('找到的符合條件的資料行 (lastFoundRows):', lastFoundRows);
 
                 if (lastFoundRows.length > 0) {
-                    // 這裡關鍵是傳遞 `headers` (包含所有原始欄位) 給顯示函數
                     displayMultipleRows(lastFoundRows, headers);
-                    showMessage(`找到 ${lastFoundRows.length} 筆資料。`, 'info'); // 顯示找到的筆數
+                    showMessage(`找到 ${lastFoundRows.length} 筆資料。`, 'info');
                 } else {
                     const criteriaText = activeFilters.map(f => `${f.header}: "${f.value}"`).join(', ');
                     showMessage(`找不到符合條件 (${criteriaText}) 的資料。`, 'error');
                 }
-                hideLoading(); // 隱藏讀取動畫
+                hideLoading();
             }
 
-            // 顯示多筆篩選結果的表格 (橫向呈現)
             function displayMultipleRows(data, allHeaders) {
                 const table = document.createElement('table');
                 table.classList.add('min-w-full', 'bg-white', 'shadow-md', 'rounded-lg', 'overflow-hidden');
 
-                // 創建表頭
                 const thead = document.createElement('thead');
                 const headerRow = document.createElement('tr');
-                // 使用 allHeaders 來確保所有原始欄位都顯示在表格表頭
                 allHeaders.forEach(header => {
                     const th = document.createElement('th');
                     th.textContent = header;
@@ -652,14 +633,12 @@
                 thead.appendChild(headerRow);
                 table.appendChild(thead);
 
-                // 創建表格內容
                 const tbody = document.createElement('tbody');
                 data.forEach(rowData => {
                     const tr = document.createElement('tr');
-                    // 使用 allHeaders 來確保所有原始欄位都顯示在表格內容
                     allHeaders.forEach(header => {
                         const td = document.createElement('td');
-                        td.textContent = rowData[header]; // 直接顯示數據，如果為空則顯示空字串
+                        td.textContent = rowData[header];
                         tr.appendChild(td);
                     });
                     tbody.appendChild(tr);
@@ -668,18 +647,17 @@
                 filteredDataTableContainer.appendChild(table);
             }
 
-            // 導出 CSV 函數
             function exportToCsv() {
                 if (lastFoundRows.length === 0) {
                     showMessage('沒有資料可以導出。請先執行查詢。', 'error');
                     return;
                 }
 
-                let csvContent = "";
+                // 添加 UTF-8 BOM
+                let csvContent = "\uFEFF"; // This is the BOM for UTF-8
 
                 // 添加表頭
                 csvContent += headers.map(header => {
-                    // 如果表頭包含逗號、雙引號或換行符，則用雙引號括起來，並將內部雙引號轉義
                     let processedHeader = header.replace(/"/g, '""');
                     if (processedHeader.includes(',') || processedHeader.includes('"') || processedHeader.includes('\n')) {
                         processedHeader = `"${processedHeader}"`;
@@ -691,7 +669,6 @@
                 lastFoundRows.forEach(row => {
                     const rowData = headers.map(header => {
                         let field = row[header] ? String(row[header]) : '';
-                        // 如果欄位包含逗號、雙引號或換行符，則用雙引號括起來，並將內部雙引號轉義
                         let processedField = field.replace(/"/g, '""');
                         if (processedField.includes(',') || processedField.includes('"') || processedField.includes('\n')) {
                             processedField = `"${processedField}"`;
@@ -703,7 +680,7 @@
 
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement('a');
-                if (link.download !== undefined) { // 檢查瀏覽器是否支持 download 屬性
+                if (link.download !== undefined) {
                     const url = URL.createObjectURL(blob);
                     link.setAttribute('href', url);
                     link.setAttribute('download', '查詢結果.csv');
@@ -711,14 +688,13 @@
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
-                    URL.revokeObjectURL(url); // 釋放 URL 對象
+                    URL.revokeObjectURL(url);
                     showMessage('資料已成功導出為 查詢結果.csv', 'info');
                 } else {
                     showMessage('您的瀏覽器不支持直接下載，請手動複製內容。', 'info');
                 }
             }
 
-            // 列印功能
             function printResults() {
                 if (lastFoundRows.length === 0) {
                     showMessage('沒有資料可以列印。請先執行查詢。', 'error');
@@ -727,7 +703,6 @@
                 window.print();
             }
 
-            // 清除所有篩選結果和輸入
             function clearFilter() {
                 filterControls.forEach(control => {
                     control.input.value = '';
@@ -735,18 +710,15 @@
                 });
                 filteredDataTableContainer.innerHTML = '';
                 hideMessage();
-                lastFoundRows = []; // 清空上次查詢結果
-                // 清除後重新填充所有下拉選單選項（基於原始完整資料）
-                updateAllDropdowns(); // 調用此函數會讓所有下拉選單顯示所有選項
+                lastFoundRows = [];
+                updateAllDropdowns();
             }
 
-            // 事件監聽器
             filterButton.addEventListener('click', filterData);
             clearFilterButton.addEventListener('click', clearFilter);
-            exportCsvButton.addEventListener('click', exportToCsv); // 導出按鈕事件監聽
-            printButton.addEventListener('click', printResults); // 列印按鈕事件監聽
+            exportCsvButton.addEventListener('click', exportToCsv);
+            printButton.addEventListener('click', printResults);
 
-            // 頁面載入時自動載入試算表資料
             loadSheetData();
         });
     </script>
