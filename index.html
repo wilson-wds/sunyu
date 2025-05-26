@@ -150,6 +150,15 @@
             background-color: #2563EB; /* 深藍色 */
         }
 
+        /* 更新紀錄按鈕的特殊樣式 */
+        button#updateLogButton {
+            background-color: #6D28D9; /* 紫色 */
+            color: white;
+        }
+        button#updateLogButton:hover {
+            background-color: #5B21B6; /* 深紫色 */
+        }
+
 
         /* 訊息框樣式 */
         .message-box {
@@ -268,51 +277,149 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Update Log Modal Styles */
+        #updateLogModalOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); /* 深色半透明背景 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001; /* 比 loading overlay 高 */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        #updateLogModalOverlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .update-log-modal {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh; /* 限制最大高度 */
+            overflow-y: auto; /* 內容超出時可滾動 */
+            position: relative;
+            transform: translateY(20px); /* 初始位置稍微向下 */
+            transition: transform 0.3s ease;
+        }
+
+        #updateLogModalOverlay.visible .update-log-modal {
+            transform: translateY(0); /* 彈入效果 */
+        }
+
+        .update-log-modal h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #333333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .update-log-item {
+            background-color: #FFFACD; /* 淺黃色背景 */
+            border-left: 4px solid #F9A825; /* 左側黃色邊框 */
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .update-log-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .update-log-item h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #555555;
+            margin-bottom: 5px;
+        }
+
+        .update-log-item p {
+            font-size: 0.95rem;
+            color: #666666;
+            line-height: 1.5;
+        }
+
+        .update-log-item p strong {
+            color: #333333;
+        }
+
+        .close-button {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            color: #999999;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            transition: color 0.2s ease, background-color 0.2s ease;
+        }
+
+        .close-button:hover {
+            color: #333333;
+            background-color: #f0f0f0;
+        }
+
         /* Print-specific styles */
         @media print {
             body {
-                background-color: #ffffff; /* 列印時背景為白色 */
+                background-color: #ffffff;
                 padding: 0;
                 margin: 0;
             }
             .container {
-                box-shadow: none; /* 列印時移除陰影 */
-                border-radius: 0; /* 列印時移除圓角 */
+                box-shadow: none;
+                border-radius: 0;
                 padding: 0;
                 margin: 0;
-                max-width: none; /* 列印時不限制最大寬度 */
+                max-width: none;
                 width: auto;
-                animation: none; /* 列印時移除動畫 */
+                animation: none;
             }
             .filter-fields-grid,
-            .flex.flex-col.sm\:flex-row.gap-4.mt-6.justify-center, /* 隱藏按鈕區塊 */
-            .add-data-section, /* 隱藏新增資料區塊 */
+            .flex.flex-col.sm\:flex-row.gap-4.mt-6.justify-center,
+            .add-data-section,
             .footer-text,
             #messageBox,
-            #loadingOverlay {
-                display: none !important; /* 隱藏不需要列印的元素 */
+            #loadingOverlay,
+            #updateLogModalOverlay { /* 隱藏更新紀錄彈窗 */
+                display: none !important;
             }
             table {
-                box-shadow: none; /* 列印時移除表格陰影 */
-                border-radius: 0; /* 列印時移除表格圓角 */
+                box-shadow: none;
+                border-radius: 0;
             }
             th, td {
-                border: 1px solid #ccc; /* 列印時使用簡單的邊框 */
+                border: 1px solid #ccc;
                 padding: 8px 12px;
             }
             th {
-                background-color: #eee !important; /* 列印時使用淺灰色表頭 */
+                background-color: #eee !important;
                 color: #000 !important;
-                -webkit-print-color-adjust: exact; /* 確保背景顏色被列印 */
+                -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
             tr:nth-child(even) {
-                background-color: #f8f8f8 !important; /* 列印時斑馬紋更淺 */
+                background-color: #f8f8f8 !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
             tr:hover {
-                background-color: transparent !important; /* 列印時移除懸停效果 */
+                background-color: transparent !important;
             }
         }
     </style>
@@ -331,19 +438,29 @@
             <button id="clearFilterButton" class="bg-gray-500 hover:bg-gray-600">清除查詢</button>
             <button id="exportCsvButton" class="bg-green-500 hover:bg-green-600">導出 CSV</button>
             <button id="printButton" class="bg-blue-500 hover:bg-blue-600">列印</button>
+            <button id="updateLogButton" class="bg-purple-700 hover:bg-purple-800">更新紀錄</button>
         </div>
 
         <div id="filteredDataTableContainer" class="overflow-x-auto mt-4">
             </div>
 
         <div class="footer-text">
-            笙祐科技開發公司 v1.0.2版本
+            笙祐科技開發公司 v1.0.3版本
         </div>
     </div>
 
     <div id="loadingOverlay">
         <div class="spinner"></div>
         <div class="loading-text">載入中...</div>
+    </div>
+
+    <div id="updateLogModalOverlay">
+        <div class="update-log-modal">
+            <button class="close-button" id="closeUpdateLogModal">&times;</button>
+            <h2>更新紀錄</h2>
+            <div id="updateLogContent">
+                </div>
+        </div>
     </div>
 
     <script>
@@ -356,10 +473,15 @@
             const clearFilterButton = document.getElementById('clearFilterButton');
             const exportCsvButton = document.getElementById('exportCsvButton');
             const printButton = document.getElementById('printButton');
+            const updateLogButton = document.getElementById('updateLogButton'); // 更新紀錄按鈕
             const filteredDataTableContainer = document.getElementById('filteredDataTableContainer');
             const filterFieldsContainer = document.getElementById('filterFieldsContainer');
             const loadingOverlay = document.getElementById('loadingOverlay');
             
+            const updateLogModalOverlay = document.getElementById('updateLogModalOverlay'); // 更新紀錄彈窗外層
+            const closeUpdateLogModalButton = document.getElementById('closeUpdateLogModal'); // 關閉彈窗按鈕
+            const updateLogContentDiv = document.getElementById('updateLogContent'); // 更新紀錄內容區塊
+
             let sheetData = []; // 用於儲存解析後的試算表資料 (物件陣列)
             let headers = []; // 用於儲存表頭 (包含所有原始欄位名稱)
             const filterControls = []; // 用於儲存所有動態生成的查詢控制項的引用
@@ -370,6 +492,15 @@
                 '發圖', '預完成日', '生管預完成日', '製作中', '交期',
                 '下一關', '實完成日', '數量', '現有庫存', '噴漆前物件'
             ];
+
+            // 更新紀錄資料
+            const UPDATE_LOGS = [
+                { date: '2025-05-27', version: 'v1.0.3', content: '新增「更新紀錄」功能，支援彈跳視窗顯示版本資訊。' },
+                { date: '2025-05-26', version: 'v1.0.2', content: '查詢功能支援模糊比對（partial match），輸入部分內容即可查詢。' },
+                { date: '2025-05-25', version: 'v1.0.1', content: '修正導出 CSV 亂碼問題，並新增列印功能。' },
+                { date: '2025-05-24', version: 'v1.0.0', content: '初始版本：Google試算表資料查詢系統，支援多欄位篩選、導出CSV。' }
+            ];
+
 
             // 顯示訊息
             function showMessage(message, type = 'error') {
@@ -718,6 +849,26 @@
                 window.print();
             }
 
+            // 顯示更新紀錄彈窗
+            function showUpdateLogModal() {
+                updateLogContentDiv.innerHTML = ''; // 清空舊內容
+                UPDATE_LOGS.forEach(log => {
+                    const logItem = document.createElement('div');
+                    logItem.classList.add('update-log-item');
+                    logItem.innerHTML = `
+                        <h3>版本: <strong>${log.version}</strong> (${log.date})</h3>
+                        <p>${log.content}</p>
+                    `;
+                    updateLogContentDiv.appendChild(logItem);
+                });
+                updateLogModalOverlay.classList.add('visible');
+            }
+
+            // 隱藏更新紀錄彈窗
+            function hideUpdateLogModal() {
+                updateLogModalOverlay.classList.remove('visible');
+            }
+
             // 清除所有篩選結果和輸入
             function clearFilter() {
                 filterControls.forEach(control => {
@@ -735,6 +886,14 @@
             clearFilterButton.addEventListener('click', clearFilter);
             exportCsvButton.addEventListener('click', exportToCsv);
             printButton.addEventListener('click', printResults);
+            updateLogButton.addEventListener('click', showUpdateLogModal); // 更新紀錄按鈕事件
+            closeUpdateLogModalButton.addEventListener('click', hideUpdateLogModal); // 關閉彈窗按鈕事件
+            // 點擊彈窗外部關閉彈窗
+            updateLogModalOverlay.addEventListener('click', (event) => {
+                if (event.target === updateLogModalOverlay) {
+                    hideUpdateLogModal();
+                }
+            });
 
             // 頁面載入時自動載入試算表資料
             loadSheetData();
