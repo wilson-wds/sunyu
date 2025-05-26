@@ -132,6 +132,25 @@
             color: #1F2937;
         }
 
+        /* 導出按鈕的特殊樣式 */
+        button#exportCsvButton {
+            background-color: #10B981; /* 綠色 */
+            color: white;
+        }
+        button#exportCsvButton:hover {
+            background-color: #059669; /* 深綠色 */
+        }
+
+        /* 列印按鈕的特殊樣式 */
+        button#printButton {
+            background-color: #3B82F6; /* 藍色 */
+            color: white;
+        }
+        button#printButton:hover {
+            background-color: #2563EB; /* 深藍色 */
+        }
+
+
         /* 訊息框樣式 */
         .message-box {
             background-color: #FFFACD; /* 淺黃色背景 (稍微深一點) */
@@ -202,6 +221,99 @@
             font-size: 0.9rem;
             color: #6B7280; /* 灰色文字 */
         }
+
+        /* Loading Overlay Styles */
+        #loadingOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.7); /* 半透明白色背景 */
+            display: flex;
+            flex-direction: column; /* 垂直排列 spinner 和文字 */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* 確保在最上層 */
+            backdrop-filter: blur(2px); /* 輕微模糊背景 */
+            -webkit-backdrop-filter: blur(2px); /* Safari 兼容性 */
+            transition: opacity 0.3s ease;
+            opacity: 0; /* 預設隱藏 */
+            pointer-events: none; /* 允許點擊穿透，直到顯示時才阻止 */
+        }
+
+        #loadingOverlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .spinner {
+            border: 6px solid #f3f3f3; /* Light grey */
+            border-top: 6px solid #F57F17; /* Darker yellow */
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 10px; /* spinner 和文字之間的間距 */
+        }
+
+        .loading-text {
+            color: #333333; /* 深灰色文字 */
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Print-specific styles */
+        @media print {
+            body {
+                background-color: #ffffff; /* 列印時背景為白色 */
+                padding: 0;
+                margin: 0;
+            }
+            .container {
+                box-shadow: none; /* 列印時移除陰影 */
+                border-radius: 0; /* 列印時移除圓角 */
+                padding: 0;
+                margin: 0;
+                max-width: none; /* 列印時不限制最大寬度 */
+                width: auto;
+                animation: none; /* 列印時移除動畫 */
+            }
+            .filter-fields-grid,
+            .flex.flex-col.sm\:flex-row.gap-4.mt-6.justify-center, /* 隱藏按鈕區塊 */
+            .footer-text,
+            #messageBox,
+            #loadingOverlay {
+                display: none !important; /* 隱藏不需要列印的元素 */
+            }
+            table {
+                box-shadow: none; /* 列印時移除表格陰影 */
+                border-radius: 0; /* 列印時移除表格圓角 */
+            }
+            th, td {
+                border: 1px solid #ccc; /* 列印時使用簡單的邊框 */
+                padding: 8px 12px;
+            }
+            th {
+                background-color: #eee !important; /* 列印時使用淺灰色表頭 */
+                color: #000 !important;
+                -webkit-print-color-adjust: exact; /* 確保背景顏色被列印 */
+                print-color-adjust: exact;
+            }
+            tr:nth-child(even) {
+                background-color: #f8f8f8 !important; /* 列印時斑馬紋更淺 */
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            tr:hover {
+                background-color: transparent !important; /* 列印時移除懸停效果 */
+            }
+        }
     </style>
 </head>
 <body>
@@ -216,6 +328,8 @@
         <div class="flex flex-col sm:flex-row gap-4 mt-6 justify-center">
             <button id="filterButton">查詢資料</button>
             <button id="clearFilterButton" class="bg-gray-500 hover:bg-gray-600">清除查詢</button>
+            <button id="exportCsvButton" class="bg-green-500 hover:bg-green-600">導出 CSV</button>
+            <button id="printButton" class="bg-blue-500 hover:bg-blue-600">列印</button>
         </div>
 
         <div id="filteredDataTableContainer" class="overflow-x-auto mt-4">
@@ -226,6 +340,11 @@
         </div>
     </div>
 
+    <div id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text">載入中...</div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // 硬編碼 Google 試算表 CSV 發佈 URL
@@ -234,12 +353,16 @@
             const messageBox = document.getElementById('messageBox');
             const filterButton = document.getElementById('filterButton');
             const clearFilterButton = document.getElementById('clearFilterButton');
+            const exportCsvButton = document.getElementById('exportCsvButton');
+            const printButton = document.getElementById('printButton'); // 獲取列印按鈕
             const filteredDataTableContainer = document.getElementById('filteredDataTableContainer');
             const filterFieldsContainer = document.getElementById('filterFieldsContainer');
+            const loadingOverlay = document.getElementById('loadingOverlay');
 
             let sheetData = []; // 用於儲存解析後的試算表資料 (物件陣列)
             let headers = []; // 用於儲存表頭 (包含所有原始欄位名稱)
             const filterControls = []; // 用於儲存所有動態生成的查詢控制項的引用
+            let lastFoundRows = []; // 用於儲存上次查詢到的資料，以便導出和列印
 
             // 定義要排除的欄位名稱，這些欄位將不會生成查詢宮格
             const EXCLUDED_HEADERS = [
@@ -260,12 +383,23 @@
                 messageBox.style.display = 'none';
             }
 
+            // 顯示 Loading 動畫
+            function showLoading() {
+                loadingOverlay.classList.add('visible');
+            }
+
+            // 隱藏 Loading 動畫
+            function hideLoading() {
+                loadingOverlay.classList.remove('visible');
+            }
+
             // 載入試算表資料並動態生成查詢欄位
             async function loadSheetData() {
                 const url = GOOGLE_SHEET_CSV_URL;
                 hideMessage();
                 filteredDataTableContainer.innerHTML = '';
                 filterFieldsContainer.innerHTML = '';
+                showLoading(); // 顯示讀取動畫
 
                 console.log('開始載入試算表資料...');
                 try {
@@ -364,6 +498,8 @@
                 } catch (error) {
                     console.error('載入試算表資料時發生錯誤:', error);
                     showMessage(`載入資料失敗: ${error.message}`, 'error');
+                } finally {
+                    hideLoading(); // 無論成功或失敗，都隱藏讀取動畫
                 }
             }
 
@@ -454,6 +590,7 @@
             function filterData() {
                 filteredDataTableContainer.innerHTML = ''; // 清空舊的篩選結果
                 hideMessage();
+                showLoading(); // 顯示讀取動畫
 
                 const activeFilters = [];
                 filterControls.forEach(control => {
@@ -473,27 +610,29 @@
 
                 if (activeFilters.length === 0) {
                     showMessage('請輸入或選擇至少一個查詢條件。', 'error');
+                    hideLoading(); // 隱藏讀取動畫
                     return;
                 }
 
                 // 尋找符合所有條件的所有資料行
-                const foundRows = sheetData.filter(row => {
+                lastFoundRows = sheetData.filter(row => { // 將結果儲存到 lastFoundRows
                     return activeFilters.every(filter => {
                         // 確保比較時也去除空白
                         return (row[filter.header] || '').trim() === filter.value.trim();
                     });
                 });
 
-                console.log('找到的符合條件的資料行 (foundRows):', foundRows);
+                console.log('找到的符合條件的資料行 (lastFoundRows):', lastFoundRows);
 
-                if (foundRows.length > 0) {
+                if (lastFoundRows.length > 0) {
                     // 這裡關鍵是傳遞 `headers` (包含所有原始欄位) 給顯示函數
-                    displayMultipleRows(foundRows, headers);
-                    showMessage(`找到 ${foundRows.length} 筆資料。`, 'info'); // 顯示找到的筆數
+                    displayMultipleRows(lastFoundRows, headers);
+                    showMessage(`找到 ${lastFoundRows.length} 筆資料。`, 'info'); // 顯示找到的筆數
                 } else {
                     const criteriaText = activeFilters.map(f => `${f.header}: "${f.value}"`).join(', ');
                     showMessage(`找不到符合條件 (${criteriaText}) 的資料。`, 'error');
                 }
+                hideLoading(); // 隱藏讀取動畫
             }
 
             // 顯示多筆篩選結果的表格 (橫向呈現)
@@ -529,6 +668,65 @@
                 filteredDataTableContainer.appendChild(table);
             }
 
+            // 導出 CSV 函數
+            function exportToCsv() {
+                if (lastFoundRows.length === 0) {
+                    showMessage('沒有資料可以導出。請先執行查詢。', 'error');
+                    return;
+                }
+
+                let csvContent = "";
+
+                // 添加表頭
+                csvContent += headers.map(header => {
+                    // 如果表頭包含逗號、雙引號或換行符，則用雙引號括起來，並將內部雙引號轉義
+                    let processedHeader = header.replace(/"/g, '""');
+                    if (processedHeader.includes(',') || processedHeader.includes('"') || processedHeader.includes('\n')) {
+                        processedHeader = `"${processedHeader}"`;
+                    }
+                    return processedHeader;
+                }).join(',') + '\n';
+
+                // 添加資料行
+                lastFoundRows.forEach(row => {
+                    const rowData = headers.map(header => {
+                        let field = row[header] ? String(row[header]) : '';
+                        // 如果欄位包含逗號、雙引號或換行符，則用雙引號括起來，並將內部雙引號轉義
+                        let processedField = field.replace(/"/g, '""');
+                        if (processedField.includes(',') || processedField.includes('"') || processedField.includes('\n')) {
+                            processedField = `"${processedField}"`;
+                        }
+                        return processedField;
+                    });
+                    csvContent += rowData.join(',') + '\n';
+                });
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                if (link.download !== undefined) { // 檢查瀏覽器是否支持 download 屬性
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', '查詢結果.csv');
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url); // 釋放 URL 對象
+                    showMessage('資料已成功導出為 查詢結果.csv', 'info');
+                } else {
+                    showMessage('您的瀏覽器不支持直接下載，請手動複製內容。', 'info');
+                }
+            }
+
+            // 列印功能
+            function printResults() {
+                if (lastFoundRows.length === 0) {
+                    showMessage('沒有資料可以列印。請先執行查詢。', 'error');
+                    return;
+                }
+                window.print();
+            }
+
             // 清除所有篩選結果和輸入
             function clearFilter() {
                 filterControls.forEach(control => {
@@ -537,6 +735,7 @@
                 });
                 filteredDataTableContainer.innerHTML = '';
                 hideMessage();
+                lastFoundRows = []; // 清空上次查詢結果
                 // 清除後重新填充所有下拉選單選項（基於原始完整資料）
                 updateAllDropdowns(); // 調用此函數會讓所有下拉選單顯示所有選項
             }
@@ -544,6 +743,8 @@
             // 事件監聽器
             filterButton.addEventListener('click', filterData);
             clearFilterButton.addEventListener('click', clearFilter);
+            exportCsvButton.addEventListener('click', exportToCsv); // 導出按鈕事件監聽
+            printButton.addEventListener('click', printResults); // 列印按鈕事件監聽
 
             // 頁面載入時自動載入試算表資料
             loadSheetData();
